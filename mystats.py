@@ -1,6 +1,35 @@
 import scipy.io
 import numpy as np
 
+def anova1(y, x):
+    from scipy.linalg import lstsq, inv
+    import scipy.stats
+    
+    y = y[...,np.newaxis] if y.ndim==1 else y;
+    x = x[...,np.newaxis] if x.ndim==1 else x;
+
+    #Remove missing values i.e. NaNs
+    idx=np.logical_not(np.logical_or(np.isnan(x).sum(1),np.isnan(y).sum(1)))
+    x=x[idx,:]
+    y=y[idx]
+    n, m=x.shape
+
+    #this is under the assumption that the variables are continuous and not categorical
+    x=np.hstack([np.ones((n, 1)), x]) 
+
+    #Solve for the parameters b
+    b, SSE, rank, s = lstsq(x, y)
+    if rank<(m+1):
+        return np.array([float('NaN')]*m)
+    SST = np.dot(np.dot(y.T, np.eye(n)-1.0/n*np.ones((n, n))), y)
+    MSE=SSE/(n-m-1)
+    s2b=MSE*inv(np.dot(x.T,x))
+    t=map(lambda x,y: (x/y)[0], b, np.sqrt(np.diag(s2b)))
+    p=scipy.stats.t.sf(np.abs(t),n-m-1)*2  #sf = 1-cdf
+    return p[1:]
+
+
+
 def removeNaNs(data, groups):
     data=np.asarray(data)
     groups=np.asarray(groups)
