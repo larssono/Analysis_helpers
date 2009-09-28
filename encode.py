@@ -1,4 +1,5 @@
 import numpy as n
+import scipy.stats as stats
 
 def encode(data):
     """Converts a matrix of genotypes where the individuals are in rows
@@ -32,3 +33,36 @@ def encode(data):
                 else:
                     out[i,j/2]=1
     return out
+
+
+#------------------------------ Find top Changing Genes ------------------------------------
+def topChangingExpressionProbes_ttest(data1, data2, pVal=0.05, absDiff=0, benjamini=True):
+    """Finds probes that are significantly differently expressed between
+    data1 and data2.
+
+    Parameters:
+       data1:  a matrix n x m1 of expression data for n probes and m1 samples
+       data2:   a matrix n x m2 of expression data for n probes and m2 samples
+       pVal:   (default 0.05) pvalue cutoff for significance
+       absDiff:(default 0)  Minimum fold change in expression between data1 and data1,
+            Log_2( |mean(data1[i,:])/mean(data2[i,:])| ) >= absDiff
+       benjamini: (T/F) wheter to use Benjamini-Hochtberg correction.
+
+    Return:
+         idx:  array of size n with T/F for each gene passing criteria
+
+    """
+    (nGenes, nExps)=data1.shape
+    (t, p)=stats.ttest_ind(data1, data2, axis=1)
+
+    #Get significant genes by Benjamini-Hodgberg
+    if benjamini:
+        qsort=np.sort(p)
+        idx=np.sum(qsort<(pVal*np.arange(1,nGenes+1)/nGenes))
+        idx=p<qsort[idx-1]
+    else:
+        idx = p<pVal
+    if absDiff != 0:
+        idx2 = np.log2(np.abs(data1.mean(1)/data2.mean(1))) >= absDiff
+        return np.logical_and(idx, idx2)
+    return idx
