@@ -1,4 +1,4 @@
-import numpy as n
+import numpy as np
 import scipy.stats as stats
 
 def encode(data):
@@ -13,7 +13,7 @@ def encode(data):
     nIndividuals=data.shape[0]
     code=[[0,0]]*(nSNPs)
     for i in range(0, nSNPs*2, 2):
-        code[i/2]=list(n.unique(data[:,i:i+2].flatten()))
+        code[i/2]=list(np.unique(data[:,i:i+2].flatten()))
         try:
             code[i/2].remove('0')
             code[i/2].remove(0.)
@@ -22,7 +22,7 @@ def encode(data):
         if len(code[i/2]) >2:
             print "Too many alleles {%s} to handle with encoding for SNP %g" %((i/2 +1), `code[i/2]`)
             raise ValueError()
-    out=n.zeros((nIndividuals, nSNPs), dtype=float);
+    out=np.zeros((nIndividuals, nSNPs), dtype=float);
     for i in range(nIndividuals):
         for j in range(0,nSNPs*2,2):
             if data[i,j]=='0' or data[i, j+1]=='0': #Missing value case
@@ -63,6 +63,7 @@ def topChangingExpressionProbes_ttest(data1, data2, pVal=0.05, absDiff=0, benjam
     else:
         idx = p<pVal
     if absDiff != 0:
-        idx2 = np.log2(np.abs(data1.mean(1)/data2.mean(1))) >= absDiff
+        foldChange=data1.mean(1)/data2.mean(1)
+        idx2 = np.logical_or(foldChange >= absDiff, foldChange<=1/absDiff)
         return np.logical_and(idx, idx2)
     return idx
