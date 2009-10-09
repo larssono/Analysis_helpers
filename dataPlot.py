@@ -33,3 +33,28 @@ def bar_w_error(y, errors=np.array([]), legend=[]):
     if len(legend)==nBars:
         ax.legend( [rect[0] for rect in rects], legend, loc=0 )
 
+def qqplot(y, x='norm'):
+    """Displays a Quantile-Quantile plot of x versus theoretical
+    quantiles (based on y or default normal distribution).
+
+    @param y:   array of pvalues
+
+    @param x: either an array of pvalues or one of the keywords
+              {'norm', 'linear'} where 'norm' means y are normally
+              distributed and 'linear' means y is linearly distributed
+              default: 'norm'
+    """
+    nLen=len(y)
+    if x=='norm':
+        x = np.sort(np.random.randn(nLen))
+    elif x=='linear':
+        x = (np.arange(1,nLen+1)-.5)/nLen
+    pylab.loglog(x, np.sort(y), '.', basex=10, basey=10)
+    xmin=min(pylab.gca().get_xlim())
+    
+    pylab.setp(pylab.gca(), 'xlim', [1, xmin])
+    pylab.setp(pylab.gca(), 'ylim', [1, min(pylab.gca().get_ylim())])
+    #pylab.loglog([1,xmin], [1, xmin], 'k')
+    pylab.xlabel('Expected P value')
+    pylab.ylabel('Observed P value')
+    
