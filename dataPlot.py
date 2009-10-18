@@ -27,7 +27,7 @@ def bar_w_error(y, errors=np.array([]), legend=[]):
         if len(errors)>0:
             pylab.errorbar(x+width/2+i*width, y[:,i], errors[:,i], fmt=None, ecolor='k')
 
-    pylab.xticks(x+(width*nBars)/2, np.arange(nBars)+1)
+    pylab.xticks(x+(width*nBars)/2, np.arange(nGroups)+1)
 
     ax=pylab.gca()
     if len(legend)==nBars:
