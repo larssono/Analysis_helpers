@@ -1,7 +1,7 @@
 import scipy.io
 import numpy as np
 
-def anova1(y, x, returnB=False):
+def anova1(y, x, returnB=False, returnR2=False):
     from scipy.linalg import lstsq, inv
     import scipy.stats
     
@@ -27,7 +27,10 @@ def anova1(y, x, returnB=False):
     t=map(lambda x,y: (x/y)[0], b, np.sqrt(np.diag(s2b)))
     p=scipy.stats.t.sf(np.abs(t),n-m-1)*2  #sf = 1-cdf
     if returnB:
-        return p[1:], b
+        if returnR2:
+            return p[1:], b, 1-SSE/SST
+        else:
+            return p[1:], b
     return p[1:]
 
 
