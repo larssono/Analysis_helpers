@@ -13,7 +13,6 @@ def fst(file1, file2):
     for (snpName, snpLocation, snps) in files:
         vals.append(fileReader.nucleotides2Haplotypes(sum(snps, [])))
     vals=np.asarray(vals)
-    return 'asdf'
     nAll=float(vals.shape[1])
     nij=np.asarray(map(len, subjects), np.float)
     popIdx=[range(nij[0]), range(nij[0],vals.shape[1])] 
