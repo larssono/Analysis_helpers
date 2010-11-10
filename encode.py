@@ -57,9 +57,8 @@ def topChangingExpressionProbes_ttest(data1, data2, pVal=0.05, absDiff=0, benjam
 
     #Get significant genes by Benjamini-Hodgberg
     if benjamini:
-        qsort=np.sort(p)
-        idx=np.sum(qsort<(pVal*np.arange(1,nGenes+1)/nGenes))
-        idx=p<qsort[idx-1]
+        minP=mystats.benjamini_hochberg(p, pVal)
+        idx=p<=minP
     else:
         idx = p<pVal
     if absDiff != 0:
