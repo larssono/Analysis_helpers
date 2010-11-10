@@ -58,3 +58,44 @@ def qqplot(y, x='norm'):
     pylab.xlabel('Expected P value')
     pylab.ylabel('Observed P value')
     
+def matlabBoxplot(x, groups):
+    """Displays box plots of multiple data samples.
+    
+    BOXPLOT(X,G) specifies one or more grouping variables G, producing a
+    separate box for each set of X values sharing the same G value or
+    values.  Grouping variables must have one row per element of X, or one
+    row per column of X. Specify a single grouping variable in G by using a
+    vector of strings; specify multiple grouping variables in G by using a
+    array of these vectors, such as [G1 G2 G3], or by using a
+    matrix.  If multiple grouping variables are used, they must all be the
+    same length.  Groups that contain a NaN or an empty string ('') in a
+    grouping variable are omitted, and are not counted in the number of
+    groups considered by other parameters.
+    
+    Arguments:
+    - `x`: vector of values
+    - `groups`: 
+    """
+    #split x into the groups
+    y=[]; legends=[]
+    labels=[]
+    groups=map(np.asarray, groups)
+    for g in groups:
+        labels.append(list(set(g)))
+    labelLengths=map(len, labels)
+    for i in range(np.prod(labelLengths)):
+        idx=np.ones(len(x), np.bool_)
+        legend=''
+        for j, label in enumerate(labels):
+            labelPos=int(i/np.prod(labelLengths[j+1:])%labelLengths[j])
+            idx=idx&(groups[j]==label[labelPos])
+            legend+='-'+str(label[labelPos])
+            #print j, label[int(i/np.prod(labelLengths[j+1:])%labelLengths[j])],
+        #print groups[0][idx], groups[1][idx]
+        y.append(x[idx])
+        legends.append(legend)
+    legends=[s.strip('-') for s in  legends]
+
+    pylab.boxplot(y)
+    pylab.xticks(range(1,len(y)+1), legends)
+
