@@ -33,6 +33,23 @@ def anova1(y, x, returnB=False, returnR2=False):
             return p[1:], b
     return p[1:]
 
+def benjamini_hochberg(pvals, pCut=0.05):
+    """Given an array of pvalues finds the cutoff that limits the
+    false discovery rate to pVal
+
+    returns: number significant and p value cutoff
+    """
+    if np.any(np.isnan(pvals)):
+        raise FloatingPointError
+    nProbes=len(pvals)
+    sortedP=np.sort(pvals, kind='mergesort')
+    #print np.arange(1,nProbes+1)*pCut/nProbes
+    maxIdx=np.sum(sortedP<np.arange(1,nProbes+1)*pCut/nProbes)
+    if maxIdx==0: 
+        return 0
+    else: 
+        return sortedP[maxIdx]
+
 
 
 def removeNaNs(data, groups):
