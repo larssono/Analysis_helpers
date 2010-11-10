@@ -27,14 +27,14 @@ def flatten(T, n):
 
     return np.reshape(np.transpose(T, order),(nrows,ncols), order='FORTRAN')
 
-def hosvd(T):
+def hosvd(T, saveSpace=False):
     """HOSVD    N-mode SVD decomposition of N-way tensor 
     (Z, Un, Sn, Vn) = HOSVD(T) decomposes the N-way tensor D into N
     orthogonal matrices stored in Un and a core tensor Z.  Also
-    returns the n Tucker1 results in Sn and Vn
+    returns the n Tucker1 results in Sn and Vn if saveSpace=False (default)
     
     Author: Larsson Omberg <lom@larssono.com>
-    Date:   11-NOV-2007, 28-February-2008, 5-June-2009"""
+    Date:   11-NOV-2007, 28-February-2008, 5-June-2009, 4-Nov-2010"""
     #Find orthogonal matrices
     Un=[]; Vn=[]; Sn=[]
     for n in range(T.ndim):
@@ -46,13 +46,15 @@ def hosvd(T):
             [V,S,U] = svd(Tn.T,0);
             U=U.T
         Un.append(U);
-        Vn.append(V);
-        Sn.append(S);
+        if not saveSpace:
+            Vn.append(V);
+            Sn.append(S);
     Z=T.copy()
     for n in range(len(Un)):
         Z = nmodmult(Z, Un[n].T, n+1);
-    return [Z, Un, Sn, Vn]
-
+    if not saveSpace:
+        return [Z, Un, Sn, Vn]
+    return [Z, Un]
 
 
 def unflatten(T, sizes, n):
