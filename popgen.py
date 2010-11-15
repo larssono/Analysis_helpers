@@ -28,7 +28,7 @@ def fstFile(file1, file2, isNorm=True):
     subjects=files.next()
     vals=[]
     for (snpName, snpLocation, snps) in files:
-        vals.append(fileReader.nucleotides2Haplotypes(sum(snps, [])))
+        vals.append(nucleotides2Haplotypes(sum(snps, [])))
     vals=np.asarray(vals, np.float)
     nSamples=len(subjects[0])
     return fst(vals[:,:nSamples], vals[:,nSamples:], isNorm)
@@ -44,8 +44,36 @@ def nucleotides2Haplotypes(pop):
 
     return: numpy array of [-1,1]  e.g. [[-1, 1,-1, 1, 1, 1], [-1, 1, -1, 1, 1, 1]]
     """
+    if type(pop)==type([]):
+        majorAllele=findAlleles(pop)[0]
+        outSNPs=np.ones(len(pop), np.short)
+        for i in range(len(pop)):
+            outSNPs[i]=(pop[i]==majorAllele)*-2 + 1
+        return outSNPs
     majorAllele=[findAlleles(snps)[0] for snps in pop]
     return np.asarray([(subject==majorAllele)*-2+1 for subject in pop.T]).T
+
+
+ 
+def nucleotides2SNPs(snps):
+    """Given list nucleotide labels returns -1,0,1 using every two
+    nucleotides to encode -1 for minor allele homozygote, 0
+    heterozygote and 1 for major allele homozygote.
+    TODO: Fix this so it also works with matrices
+
+    params:
+       snps: list of characters, e.g. ['G', 'A', 'G', 'A', 'A', 'A']
+
+    return: numpy array of [-1,0,1]  e.g. [0, 0 , 1]
+    """
+    majorAllele,minorAllele=findAlleles(snps)
+    outSNPs=np.ones(len(snps)/2, np.short)
+    #Filter and return
+    for i in range(0,len(snps),2):
+        outSNPs[i/2]=(snps[i]==snps[i+1])*(-2*(snps[i]==majorAllele)+1)
+    return outSNPs
+
+
 
 def findAlleles(snps):
     """Given list of nucleotides returns most common and least common"""
