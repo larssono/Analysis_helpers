@@ -33,6 +33,31 @@ def fstFile(file1, file2, isNorm=True):
     nSamples=len(subjects[0])
     return fst(vals[:,:nSamples], vals[:,nSamples:], isNorm)
 
+def nucleotides2Haplotypes(pop):
+    """Given a matrix of nucleotide labels like {'A','T','G','C'}
+    returns matrix of -1, 1 encoding for minor and major allele respectively
+
+    params:
+       snps: array of characters, e.g.
+       [['G', 'A', 'G', 'A', 'A', 'A'],
+        ['G', 'A', 'G', 'A', 'T', 'T']] with haplotypes (subjects in across columns)
+
+    return: numpy array of [-1,1]  e.g. [[-1, 1,-1, 1, 1, 1], [-1, 1, -1, 1, 1, 1]]
+    """
+    majorAllele=[findAlleles(snps)[0] for snps in pop]
+    return np.asarray([(subject==majorAllele)*-2+1 for subject in pop.T]).T
+
+def findAlleles(snps):
+    """Given list of nucleotides returns most common and least common"""
+    alleles = list(set(snps))
+    alleleFreq=[np.sum(snps==nucl) for nucl in alleles]
+    idx=np.argsort(alleleFreq)
+    if len(idx)>2:
+        print "There are more than two alleles in the input files: %s" %','.join(alleles)
+    elif len(idx)<2:
+        return alleles[idx], 'Q'
+    return alleles[idx[-1]], alleles[idx[-2]]
+
 
 if __name__ == '__main__':
     print fstFile(*sys.argv[1:])

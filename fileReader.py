@@ -1,6 +1,7 @@
 import gzip
-import numpy as np
+import popgen, numpy as np
 from collections import deque
+
 
 def openfile(file):
     """Returns a file object by opening either a gz or uncompressed file. """
@@ -120,16 +121,6 @@ def findCommonRow(lineLabels):
     return ''
 
 
-def __findAlleles(snps):
-    """Given list of nucleotides returns most common and least common"""
-    alleles = list(set(snps))
-    alleleFreq=[snps.count(nucl) for nucl in alleles]
-    idx=np.argsort(alleleFreq)
-    if len(idx)>2:
-        print "There are more than two alleles in the input files: %s" %','.join(alleles)
-    elif len(idx)<2:
-        return alleles[idx], 'Q'
-    return alleles[idx[-2]], alleles[idx[-1]]
 
 # ALLELES={0:'A', 1:'T', 2:'G', 3:'C'}
 # def __findAlleles(snps):
@@ -149,7 +140,7 @@ def nucleotides2Haplotypes(snps):
 
     return: numpy array of [-1,1]  e.g. [-1, 1,-1, 1, 1, 1]
     """
-    majorAllele,minorAllele=__findAlleles(snps)
+    majorAllele,minorAllele=popgen.findAlleles(snps)
     #Filter and return
     outSNPs=np.ones(len(snps), np.short)
     for i in range(len(snps)):
@@ -166,7 +157,7 @@ def nucleotides2SNPs(snps):
 
     return: numpy array of [-1,0,1]  e.g. [0, 0 , 1]
     """
-    majorAllele,minorAllele=__findAlleles(snps)
+    majorAllele,minorAllele=popgen.findAlleles(snps)
     outSNPs=np.ones(len(snps)/2, np.short)
     #Filter and return
     for i in range(0,len(snps),2):
