@@ -7,10 +7,11 @@ def nchoose2(n):
     return n*(n-1)/2
 
 def fst(vals0, vals1, isNorm=True):
+    """Calculates fst from two matrices where minorAllele is stored as 1 and major allele as -1"""
     nij=np.asarray([vals0.shape[1], vals1.shape[1]], np.float)
     nAll=nij.sum()
-    xi=((vals0==-1).sum(1)+(vals1==-1).sum(1))/nAll
-    xij=[(vals0==-1).sum(1)/nij[0], (vals1==-1).sum(1)/nij[1]]
+    xi=((vals0==1).sum(1)+(vals1==1).sum(1))/nAll
+    xij=[(vals0==1).sum(1)/nij[0], (vals1==1).sum(1)/nij[1]]
     if isNorm:
         top=0; bottom=0
         for j in range(2):
