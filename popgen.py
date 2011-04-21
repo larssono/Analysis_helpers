@@ -1,7 +1,5 @@
-import  sys,pyximport,  numpy as np
+import  sys,  numpy as np
 sys.path.append('..')
-pyximport.install()
-import fileReader
 
 def nchoose2(n):
     return n*(n-1)/2
@@ -23,11 +21,11 @@ def fst(vals0, vals1, isNorm=True):
 def fstFile(file1, file2, isNorm=True):
     """Calculates fst based on data stored in two tab delimited files.
     Each file must contain the following columns: snp names; snp position; snp values. """
-
+    import fileReader
     files=fileReader.concurrentFileReader(file1, file2, key=1)
-    subjects=files.next()
+    subjects=files.next()[0]
     vals=[]
-    for (snpName, snpLocation, snps) in files:
+    for ([snpName, snpLocation], snps) in files:
         vals.append(nucleotides2Haplotypes(sum(snps, [])))
     vals=np.asarray(vals, np.float)
     nSamples=len(subjects[0])
