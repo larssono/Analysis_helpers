@@ -71,6 +71,38 @@ def nucleotides2SNPs(snps):
         outSNPs[i/2]=(snps[i]==snps[i+1])*(-2*(snps[i]==majorAllele)+1)
     return outSNPs
 
+class geneticMap(object):
+    """keeps track of genetic Map locations and returns closest genetic map
+    location given a snp location. """
+
+    def __init__(self,file ):
+        """Builds conversion object for mapping base-pair position to genetic map position.
+
+        Parameters:
+        - `file` - tab delimited file with three columns: position [bp], combined rate [cM/Mb], Genetic Map [cM].
+                   Example files for human genome release 36 can be found at:
+                      ftp://ftp.hapmap.org/hapmap/recombination/2008-03_rel22_B36/rates/
+                   and for relase 37 at:
+                      ftp://ftp.hapmap.org/hapmap/recombination/2011-01_phaseII_B37/genetic_map_HapMapII_GRCh37.tar.gz
+        """
+        fp=open(file)
+        self.m=np.asarray([np.asarray(l.split())[[0,2]] for l in fp.readlines()[1:]], np.float)
+
+    def pos2gm(self, pos):
+        """Converts position in bp to position in centiMorgans"""
+        m=self.m
+        pos=np.asarray(pos)
+        results=np.empty_like(pos)
+
+        i=m[:,0].searchsorted(pos)  #Find probable locations in map
+        i[i==len(m)]=len(m)-1       #Correct those that are beyond the end of the genetic map
+        idx=(m[i,0]==pos)|(i==len(m)-1)|(i==0)   #Fill results with those that match exactly
+        results[idx]=m[i[idx], 1];
+        idx=np.logical_not(idx)
+        #Fill those that require interpolation
+        results[idx]= (m[i[idx],1]-m[i[idx]-1,1]) / (m[i[idx],0]-m[i[idx]-1,0])*(pos[idx]-m[i[idx]-1,0]) + m[i[idx]-1,1]
+        return results
+
 
 
 def findAlleles(snps):
