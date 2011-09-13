@@ -31,7 +31,7 @@ def fstFile(file1, file2, isNorm=True):
     nSamples=len(subjects[0])
     return fst(vals[:,:nSamples], vals[:,nSamples:], isNorm)
 
-def nucleotides2Haplotypes(pop):
+def nucleotides2Haplotypes(pop, warnings=True):
     """Given a matrix of nucleotide labels like {'A','T','G','C'}
     returns matrix of -1, 1 encoding for minor and major allele respectively
 
@@ -43,7 +43,7 @@ def nucleotides2Haplotypes(pop):
     return: numpy array of [-1,1]  e.g. [[-1, 1,-1, 1, 1, 1], [-1, 1, -1, 1, 1, 1]]
     """
     if type(pop)==type([]):
-        majorAllele=findAlleles(pop)[0]
+        majorAllele=findAlleles(pop, warnings)[0]
         outSNPs=np.ones(len(pop), np.short)
         for i in range(len(pop)):
             outSNPs[i]=(pop[i]==majorAllele)*-2 + 1
@@ -53,7 +53,7 @@ def nucleotides2Haplotypes(pop):
 
 
  
-def nucleotides2SNPs(snps):
+def nucleotides2SNPs(snps, warnings=True):
     """Given list nucleotide labels returns -1,0,1 using every two
     nucleotides to encode -1 for minor allele homozygote, 0
     heterozygote and 1 for major allele homozygote.
@@ -64,7 +64,7 @@ def nucleotides2SNPs(snps):
 
     return: numpy array of [-1,0,1]  e.g. [0, 0 , 1]
     """
-    majorAllele,minorAllele=findAlleles(snps)
+    majorAllele,minorAllele=findAlleles(snps, warnings)
     outSNPs=np.ones(len(snps)/2, np.short)
     #Filter and return
     for i in range(0,len(snps),2):
@@ -92,7 +92,7 @@ class geneticMap(object):
         """Converts position in bp to position in centiMorgans"""
         m=self.m
         pos=np.asarray(pos)
-        results=np.empty_like(pos)
+        results=np.empty(pos.shape, dtype=np.float)
 
         i=m[:,0].searchsorted(pos)  #Find probable locations in map
         i[i==len(m)]=len(m)-1       #Correct those that are beyond the end of the genetic map
@@ -105,12 +105,12 @@ class geneticMap(object):
 
 
 
-def findAlleles(snps):
+def findAlleles(snps, warnings=True):
     """Given list of nucleotides returns most common and least common"""
     alleles = list(set(snps))
     alleleFreq=[np.sum(snps==nucl) for nucl in alleles]
     idx=np.argsort(alleleFreq)
-    if len(idx)>2:
+    if len(idx)>2 and warnings:
         print "There are more than two alleles in the input files: %s" %','.join(alleles)
     elif len(idx)<2:
         return alleles[idx], 'Q'
