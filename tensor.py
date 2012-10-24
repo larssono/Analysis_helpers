@@ -1,4 +1,4 @@
-from scipy.linalg import svd
+from scipy.linalg import svd, pinv
 import numpy as np
 
 
@@ -104,28 +104,86 @@ def nmodmult(A, B, n):
     T = unflatten(np.dot(B,An), Asize, n);
     return T
 
+def gsvd(A,B):
+    """Computes the generalized singular value decomposition
+              U1,U2,V,S1,S2 = GSVD(A,B) 
+       such that A=U1 * S1 * V'
+                 B=U2 * S2 * V'
+                 S1'*S1 + S2'*S2 = I
+       using the method described by Paige and Saunders in 1981
+    Arguments:
+    - `A`: a matrix of dimensions m x n
+    - `B`: a matrix of dimensions p x n
+
+    Returns: unitary matrices U1 and U2, a square matrix V, and
+      nonnegative diagonal matrices S1 and S2.
+    """
+    A = np.asarray(A)
+    B = np.asarray(B)
+    m,n = A.shape
+    p,n1 = B.shape
+    if n1!=n:
+        raise LinAlgError('The number of columns in the two matrices A and B don\'t match')
+    #First Step of algorithm
+    P, R0, Q = svd(np.concatenate([A,B]))
+    k = sum(R0>1e-12)
+    R0=np.diag(R0)
+    #Second Step part a
+    P11 = P[:m,:k]
+    U1, SA, W1=svd(P11)
+    S1=np.zeros_like(P11)
+    np.fill_diagonal(S1, SA)
+    if S1.shape[0] > len(SA):  #Workaround for bug #1953 in fill_diagonal
+        S1[len(SA):, :] = 0 
+    #Second Step part b
+    P21 = P[m:m+p,:k]
+    VB, SB, W=svd(P21)
+    kr = min(p, k)
+    S2 = np.zeros((p,k))
+    S2[p-kr:, k-kr:] =   np.diag(SB[kr::-1])
+    U2=reduce(np.dot, (P21, W1.T, pinv(S2)))
+
+    Z=np.zeros((k,n-k));
+    V=np.dot(np.hstack((np.dot(W1, R0[:k,:k]), Z)), Q).T
+
+    return U1, U2, S1, S2, V
+
+
 
 def test():
     T=np.reshape(np.arange(1,121).T, (3,4,5,2), order='FORTRAN')
-    z=np.zeros((3,4,5,2))
-    z[:,:,0,0]=[[759.2225,-0.7251,-0.0000, 0.0000],[-0.1844,-0.3383, 0.0000, 0.0000],[-0.0000, 0.0000,-0.0000,-0.0000]]
-    z[:,:,1,0]=[[0.1619, 7.3968,-0.0000, 0.0000],[ 1.7977, 0.1504, 0.0000,-0.0000],[-0.0000, 0.0000, 0.0000,-0.0000]]
-    z[:,:,2,0]=1.0e-13*np.asarray([[-0.4852, 0.1526,-0.1303, 0.1039],[ 0.0188,-0.0283,-0.0208, 0.0976],[ 0.0109,-0.0099, 0.0548, 0.0638]])
-    z[:,:,3,0]=1.0e-13*np.asarray([[-0.5339, 0.0717, 0.1782,-0.0199],[ 0.1186,-0.0234, 0.0284,-0.0507],[ 0.0138,-0.0078,-0.0339,-0.0368]])
-    z[:,:,4,0]=1.0e-13*np.asarray([[ 0.3636,-0.0987,-0.1282, 0.0898],[-0.0152,-0.0330, 0.0273, 0.0185],[-0.0194,-0.0093,-0.0181, 0.0594]])
-    z[:,:,0,1]=[[ 0.1028,15.1213, 0.0000, 0.0000],[ 3.6749, 0.3076, 0.0000,-0.0000],[-0.0000,-0.0000, 0.0000,-0.0000]]
-    z[:,:,1,1]=[[ -80.3200,-6.7990,-0.0000, 0.0000],[-1.6515,-0.1041, 0.0000,-0.0000],[ 0.0000,-0.0000, 0.0000, 0.0000]]
-    z[:,:,2,1]=1.0e-13*np.asarray([[-0.3285,-0.0554,-0.0873, 0.0506],[-0.0126,-0.0161,-0.0233, 0.0329],[ 0.0099,-0.0317,-0.0096, 0.0146]])
-    z[:,:,3,1]=1.0e-13*np.asarray([[-0.1950,-0.0022, 0.1887, 0.0545],[ 0.0669,-0.0149, 0.0019, 0.0006],[ 0.0032, 0.0422, 0.0003,-0.0039]])
-    z[:,:,4,1]=1.0e-13*np.asarray([[ 0.4543,-0.0320,-0.0597, 0.0600],[ 0.0024, 0.0189,-0.0007, 0.0089],[-0.0012, 0.0078,-0.0160, 0.0089]])
-    u=[]
-    u.append(np.asarray([[-0.5701,-0.7129,0.4082],[-0.5773,-0.0059,-0.8165],[-0.5845,0.7012,0.4082]]))
-    u.append(np.asarray([[-0.4715,-0.6912, 0.5477, 0.0054],[-0.4902,-0.2443,-0.7262,-0.4154],[-0.5089, 0.2025,-0.1906, 0.8147],[-0.5276, 0.6493, 0.3691,-0.4046]]))
-    u.append(np.asarray([[-0.2959, 0.7158,-0.4263, 0.0037, 0.4672],[-0.3660, 0.4075, 0.0218,-0.0036,-0.8364],[-0.4361, 0.0991, 0.7542, 0.4063, 0.2570],[-0.5062,-0.2093, 0.1315,-0.8165, 0.1265],[-0.5763,-0.5176,-0.4812, 0.4101,-0.0143]]))
-    u.append(np.asarray([[-0.3431, 0.9393],[-0.9393,-0.3431]]))
-
     Z,Un,Sn,Vn = hosvd(T)
+    x=nmodmult(Z, Un[0],1)
+    x=nmodmult(x, Un[1],2)
+    x=nmodmult(x, Un[2],3)
+    x=nmodmult(x, Un[3],4)
+    assert np.all(x-T<1e-12)
 
-    print 'Max Error: z=%0.2g,\tU1=%0.2g,\tU2=%0.2g,\tU3=%0.2g,\tU4=%0.2g' %(abs(Z-z).max(), abs(Un[0]-u[0]).max(), abs(Un[1][:2,:2]-u[1][:2,:2]).max(),abs(Un[2][:2,:2]-u[2][:2,:2]).max(),abs(Un[3]-u[3]).max())
-    return Z, Un
+    A=[[1,    6,   11],
+       [2,    7,   12],
+       [3,    8,   13],
+       [4,    9,   14],
+       [5,   10,   15]]
+    B=[[8,    1,    6],
+       [3,    5,    7],
+       [4,    9,    2]]
+    U1, U2, S1, S2, V = gsvd(A,B)
+    assert  (np.all(reduce(np.dot, (U1,S1,V.T))-A < 1e-8) and
+             np.all(reduce(np.dot, (U2,S2,V.T))-B < 1e-8))
+    A=[[1,      4,     7,    10,    13],
+       [2,      5,     8,    11,    14],
+       [3,      6,     9,    12,    15]]
+    B=[[17,    24,     1,     8,    15],
+       [23,     5,     7,    14,    16],
+       [ 4,     6,    13,    20,    22],
+       [10,    12,    19,    21,     3]]
 
+    U1, U2, S1, S2, V = gsvd(A,B)
+    assert  (np.all(reduce(np.dot, (U1,S1,V.T))-A < 1e-8) and
+             np.all(reduce(np.dot, (U2,S2,V.T))-B < 1e-8))
+
+
+
+
+if __name__ == '__main__':
+    test()
