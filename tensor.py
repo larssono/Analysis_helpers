@@ -27,6 +27,7 @@ def flatten(T, n):
 
     return np.reshape(np.transpose(T, order),(nrows,ncols), order='FORTRAN')
 
+
 def hosvd(T, saveSpace=False):
     """HOSVD    N-mode SVD decomposition of N-way tensor 
     (Z, Un, Sn, Vn) = HOSVD(T) decomposes the N-way tensor D into N
@@ -79,8 +80,8 @@ def unflatten(T, sizes, n):
     order.extend(range(n, len(sizes)))
     order.extend(range(n-1))
 
-#ndx = [order ones(1,ndims(b)-length(order))];
-#ndx(ndx) = 1:max(length(order),ndims(b));  % Inverse permutation order
+    #ndx = [order ones(1,ndims(b)-length(order))];
+    #ndx(ndx) = 1:max(length(order),ndims(b));  % Inverse permutation order
 
     ndx = np.arange(len(order))
     ndx[order] = np.arange(len(order))  # Inverse permutation order
@@ -103,6 +104,7 @@ def nmodmult(A, B, n):
     An=flatten(A,n)
     T = unflatten(np.dot(B,An), Asize, n);
     return T
+
 
 def gsvd(A,B):
     """Computes the generalized singular value decomposition
