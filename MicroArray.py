@@ -1,7 +1,10 @@
 from numpy.oldnumeric import *
+from scipy.linalg import svd, pinv
 import numpy as np
+import pylab
 
-        
+import tensor
+import dataPlot
 
 #--------------------------------------------------------------            
 # Methods for Filtering out missing values
@@ -93,7 +96,6 @@ def replaceNaNSVD(data, L):
             missing values.  Has to fullfill L<=min(nGenes,
             nExps).
     """
-    from numpy.linalg import svd, pinv 
     nGenes, nExps = data.shape
     indexes = nonzero(sum(~np.isnan(data), 1)/float(nExps) >=1)
     missingRows=set(range(nGenes)).difference(indexes)
@@ -104,9 +106,9 @@ def replaceNaNSVD(data, L):
     for geneN in missingRows:
         idx2 = nonzero(~np.isnan(data[geneN, :]))  #Places not missing data
         notidx2 = nonzero(np.isnan(data[geneN, :])) #places of missing data
-        coeffs = dot(pinv(take(V, idx2)),take(data[geneN,:],idx2))
+        coeffs = np.dot(pinv(take(V, idx2)),take(data[geneN,:],idx2))
         for idx in notidx2:
-            data[geneN, idx] = dot(coeffs, V[idx,:])
+            data[geneN, idx] = np.dot(coeffs, V[idx,:])
     
 
 
@@ -122,10 +124,13 @@ def scale(data, center=True, scale=True):
     center: logical value indicating weather to mean center the rows of x
     scale: logical value indicating weather to scale the standard deviation of the rows
     """
+    nGenes, nExps=data.shape
     if center:
-        data=data-np.mean(data, 0);
+        data=data-np.tile(np.mean(data, 1), (nExps, 1)).T
     if scale:
-        data=data/sqrt(diag(dot(transpose(data),data)))
+        scaleFactor = np.sqrt([np.dot(d, d.T) for d in data])
+        data=data/np.tile(scaleFactor, (nExps, 1)).T
+    return data
     
 
 def normFrobenius(data):
@@ -136,4 +141,168 @@ def normFrobenius(data):
     """
     from numpy.linalg import norm
     data=data/norm(data)
+
+
+def QaD_SVD(d, colors=None, labels=None):
+    "d is data matrix and colors is used for color coding the dots."
+    u,s,vt = svd(d,0)
+    fracs = s**2/np.sum(s**2)
+    entropy = -sum(fracs*log(fracs))/np.log(np.min(vt.shape));
+    if labels==None:
+        labels=range(1, vt.shape[1]+1)
+    nGenes, nExps= d.shape
+    #Plot Standard SVD plot
+    pylab.figure(figsize=(12,4))
+
+    pylab.subplot(1,3,1)
+    pylab.imshow(vt, cmap=dataPlot.blueyellow, interpolation='nearest')
+    pylab.ylabel('Eigengenes')
+    pylab.title('(a) Arrays')
+    pylab.xlabel('Arrays')
+    pylab.yticks(np.arange(vt.shape[0]), range(1, vt.shape[0]+1))
+    pylab.xticks(np.arange(vt.shape[1]), labels)
+    pylab.setp(pylab.gca().get_xticklabels(), rotation=45, fontsize=8)
+
+    pylab.subplot(1,3,2)
+    pylab.bar(range(1,min(10,nExps)+1), fracs[:min(10,nExps)], width=.8); 
+    pylab.ylabel('% Variance')
+    pylab.xlabel('Singular Value')
+    pylab.xticks(np.arange(1, 11)+.4, np.arange(1, 11))
+    pylab.title('(b) Eigenexpression Fraction d=%0.2g' % entropy)
+
+    pylab.subplot(1,3,3)
+    pylab.plot(vt[:min(4,vt.shape[0]),:].T, '-o');
+    pylab.title('(c) EigenGenes')
+    pylab.xlabel('Arrays')
+    pylab.ylabel('Expression Level')
+    pylab.grid('on')
+    pylab.legend(range(1, min(4, vt.shape[0])+1))
+    pylab.xticks(np.arange(vt.shape[1]), labels)
+    pylab.setp(pylab.gca().get_xticklabels(), rotation=45, fontsize=8)
+
+    pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
+
+    #Plot Standard PCA plot
+    if not colors:
+        colors = 'b'
+    pylab.figure(figsize=(10,10))
+    pylab.subplot(2,2,1)
+    pylab.scatter(vt[0,:], vt[1,:], c=colors, linewidth=0, s=25)
+    pylab.xlabel('PC1 (%2.1f%%)' %(fracs[0]*100))
+    pylab.ylabel('PC2 (%2.1f%%)' %(fracs[1]*100))
+    pylab.subplot(2,2,2)
+    pylab.scatter(vt[1,:], vt[2,:], c=colors, linewidth=0, s=25)
+    pylab.xlabel('PC2 (%2.1f%%)' %(fracs[1]*100))
+    pylab.ylabel('PC3 (%2.1f%%)' %(fracs[2]*100))
+    pylab.subplot(2,2,3)
+    pylab.scatter(vt[2,:], vt[3,:], c=colors, linewidth=0, s=25)
+    pylab.xlabel('PC3 (%2.1f%%)' %(fracs[2]*100))
+    pylab.ylabel('PC4 (%2.1f%%)' %(fracs[3]*100))
+    pylab.subplot(2,2,4)
+    pylab.scatter(vt[3,:], vt[4,:], c=colors, linewidth=0, s=25)
+    pylab.xlabel('PC4 (%2.1f%%)' %(fracs[3]*100))
+    pylab.ylabel('PC5 (%2.1f%%)' %(fracs[4]*100))
+
+    return u, s, vt
+    
+     
+
+
+
+def QaD_HOSVD(t, colors=None):
+    """Peforms a quick and dirty hosvd generating several graphics
+    
+    Arguments:
+    - `t`: tensor
+    """
+    (Z, Un, Sn, Vn) = tensor.hosvd(t)
+
+    nGenes, nExps, nTreats= t.shape
+    fractionsn=[]
+    entropyn=[]
+    for i in range(t.ndim):
+        fractionsn.append(Sn[i]**2/np.sum(Sn[i]**2))
+        entropyn.append(-np.sum(fractionsn[i]*np.log(fractionsn[i]))/np.log(np.min(size(Vn[i]))))
+    
+    #Determine ordering
+    idx = np.argsort(-np.abs(Z), axis=None)
+    zSort=Z.flatten()[idx]
+    fractions = zSort**2./sum(zSort**2);
+    entropy = -np.sum(fractions*np.log(fractions))/np.log(len(fractions))
+
+    indexes = np.unravel_index(idx, Z.shape)
+    labels = []
+    for i in range(min(20, len(fractions))):
+        labels.append('')
+        for j in range(len(indexes)):
+            labels[-1]+='%1i,'% indexes[j][i]
+        labels[-1]=labels[-1][:-1]
+        print '%2i\t(%s) \t%5.3g\t%5.3g%%' %(i, labels[i], Z.flatten()[idx[i]], fractions[i]*100)
+
+    #Plot modes
+    for i in range(t.ndim):
+        pylab.figure(figsize=(12,8))
+        pylab.subplot(2,3,1)
+        pylab.imshow(Un[i].T, cmap=dataPlot.blueyellow, interpolation='nearest')
+        pylab.axis('tight')
+        pylab.ylabel('Eigengenes'); pylab.xticks([]); pylab.yticks([])
+        pylab.title('Arrays U_%i' % (i+1))
+        pylab.subplot(2,3,4); 
+        pylab.plot(Un[i][:,:3], '.-'); pylab.xticks([])
+
+        pylab.subplot(1,3,2); 
+        pylab.bar(range(1,min(10,len(fractionsn[i]))+1), fractionsn[i][:min(10,len(fractionsn[i]))], width=.8)
+        pylab.ylabel('% Variance'); pylab.xlabel('Singular Value')
+        pylab.xticks(np.arange(1, min(10,len(fractionsn[i]))+1)+.4, np.arange(1, min(10,len(fractionsn[i]))+1))
+        pylab.title('Fraction d=%0.2g' % entropyn[i])
+
+        pylab.subplot(2,3,3)
+        pylab.imshow(Vn[i], cmap=dataPlot.blueyellow, interpolation='nearest')
+        pylab.axis('tight'); pylab.xticks([])
+        pylab.title('V_%i' %(i+1))
+        pylab.subplot(2,3,6); 
+        pylab.plot(Vn[i][:,:3], '.-')
+        
+        pylab.suptitle('Mode %i' % (i+1))
+        pylab.subplots_adjust(left=0.1, right=0.95)
+
+    #Plot top patterns
+    pylab.figure(figsize=(12,4))
+    N=min(10,len(fractions))
+    pylab.subplot(1,t.ndim+1,1)
+    pylab.barh(range(1,N+1), fractions[:N], height=.8)
+    pylab.yticks(np.arange(1, N+1)+.4, labels[:N])
+    pylab.gca().set_ylim(pylab.gca().get_ylim()[::-1])
+    pylab.grid('on')
+    pylab.xlabel('% Variance')
+
+    for i in range(t.ndim):
+        pylab.subplot(1,t.ndim+1,i+2)
+        pylab.plot(Un[i][:,:3], '.-'); pylab.xticks([])
+        pylab.title('U_%i' %(i+1))
+    pylab.subplots_adjust(left=0.05, right=0.97)
+ 
+    return (Z, Un, Sn, Vn, indexes)
+
+
+if __name__ == '__main__':
+    data = np.loadtxt('/Users/lom/Dropbox/Sage/log/20121102/yeast_rnaseq_data.csv', delimiter='\t', dtype='|S')
+    geneId = data[1:,0]
+    geneNames = data[1:,1]
+    expLabels= data[0,:][2:11]
+    data = np.asarray(data[1:, 2:11], dtype='float')
+
+    print data.shape, expLabels
+
+    data=data[:, [0,1,2,4,5,7,8]]
+    expLabels=expLabels[[0,1,2,4,5,7,8]]
+    data =  scale(data, center=True, scale=True)
+    assert np.all(np.diag(np.dot(data,data.T))-1 < 1e-12) and np.all(np.mean(data, 1)<1e-12)
+
+    #Test output of SVD
+    u, s, vt = QaD_SVD(data, [1,1,1,2,2,2,3,3,3], [s.split('.')[0] for s in expLabels])
+
+    #Convert to tensor and perform HOSVD
+    t=data.reshape((-1, 3,3))  #genes x repeats x treatment
+    (Z, Un, Sn, Vn, indexes) = QaD_HOSVD(t)
 
