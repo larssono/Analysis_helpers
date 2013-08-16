@@ -2,6 +2,7 @@ from numpy.oldnumeric import *
 from scipy.linalg import svd, pinv
 import numpy as np
 import pylab
+import numbers
 
 import tensor
 import dataPlot
@@ -143,12 +144,12 @@ def normFrobenius(data):
     data=data/norm(data)
 
 
-def QaD_SVD(d, colors=None, labels=None):
+def QaD_SVD(d, colorLabels=None, labels=None):
     "d is data matrix and colors is used for color coding the dots."
     u,s,vt = svd(d,0)
     fracs = s**2/np.sum(s**2)
     entropy = -sum(fracs*log(fracs))/np.log(np.min(vt.shape));
-    if labels==None:
+    if labels is None:
         labels=range(1, vt.shape[1]+1)
     nGenes, nExps= d.shape
     #Plot Standard SVD plot
@@ -182,26 +183,40 @@ def QaD_SVD(d, colors=None, labels=None):
 
     pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
 
-    #Plot Standard PCA plot
-    if not colors:
+    #Determine the colors of spots
+    if  colorLabels is None:
         colors = 'b'
+    else: #It is a list 
+        'They are strings'
+        colorTextLabels = sorted(list(set(colorLabels)))
+        colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
+
+    #Plot Standard PCA plot
     pylab.figure(figsize=(10,10))
     pylab.subplot(2,2,1)
-    pylab.scatter(vt[0,:], vt[1,:], c=colors, linewidth=0, s=25)
+    ax = pylab.scatter(vt[0,:], vt[1,:], c=colors, linewidth=0, s=50, alpha=.7)
     pylab.xlabel('PC1 (%2.1f%%)' %(fracs[0]*100))
     pylab.ylabel('PC2 (%2.1f%%)' %(fracs[1]*100))
     pylab.subplot(2,2,2)
-    pylab.scatter(vt[1,:], vt[2,:], c=colors, linewidth=0, s=25)
+    pylab.scatter(vt[1,:], vt[2,:], c=colors, linewidth=0, s=50, alpha=.7)
     pylab.xlabel('PC2 (%2.1f%%)' %(fracs[1]*100))
     pylab.ylabel('PC3 (%2.1f%%)' %(fracs[2]*100))
     pylab.subplot(2,2,3)
-    pylab.scatter(vt[2,:], vt[3,:], c=colors, linewidth=0, s=25)
+    pylab.scatter(vt[2,:], vt[3,:], c=colors, linewidth=0, s=50, alpha=.7)
     pylab.xlabel('PC3 (%2.1f%%)' %(fracs[2]*100))
     pylab.ylabel('PC4 (%2.1f%%)' %(fracs[3]*100))
     pylab.subplot(2,2,4)
-    pylab.scatter(vt[3,:], vt[4,:], c=colors, linewidth=0, s=25)
+    pylab.scatter(vt[3,:], vt[4,:], c=colors, linewidth=0, s=50, alpha=.7)
     pylab.xlabel('PC4 (%2.1f%%)' %(fracs[3]*100))
     pylab.ylabel('PC5 (%2.1f%%)' %(fracs[4]*100))
+    if colorLabels is not None:
+        lines=[]
+        for c, label in enumerate(colorTextLabels):
+             lines.append(pylab.Rectangle((0, 0), 1, 1, fc=ax.get_cmap()(ax.norm(c))))
+        if len(colorTextLabels)<10:
+            pylab.legend(lines, colorTextLabels, loc=0)
+        else:
+            pylab.colorbar()
 
     return u, s, vt
     
