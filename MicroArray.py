@@ -1,5 +1,7 @@
 from numpy.oldnumeric import *
 from scipy.linalg import svd, pinv
+import scipy.stats as stats
+
 import numpy as np
 import pylab
 import numbers
@@ -144,6 +146,39 @@ def normFrobenius(data):
     data=data/norm(data)
 
 
+def QaD_correlation(values, classes, isFactor=None):
+    """Given a set of values or class assignments determines correlation/enrichment 
+    in list of classificiations.
+
+    Uses, correlation or fisher tests
+    
+    Arguments:
+    - `values`:  Vector of values (either numeric or factors)
+    - `classes`: list of lists of classifications (either numeric or factors)
+    - `isFactor`: list of same length as classes of T/F indicating weather each 
+                  class is a factor or continuous variable (defaults to None) meaning
+                  strings are used factors and numbers as continuous
+
+    Returns a list of p-values one for each classification in classes
+    """
+
+    isFactor = [None]*len(classes) if isFactor==None else isFactor
+    pVals = []
+    for classification, factor in zip(classes, isFactor):
+        classification = np.asarray(classification)
+        #If it is a factor perform ANOVA across groups
+        if ((classification.dtype.type in [np.string_,  np.object_, np.bool_, np.unicode_]) or 
+            factor):
+            groups = [values[classification==l] for l in list(set(classification))]
+            f_val, p_val = stats.f_oneway(*groups) 
+            pVals.append(p_val)
+        #If it is not a factor perform correlation analysis
+        else:
+            m, b, r_val, p_val, slope_std_error = stats.linregress(values, classification)
+            pVals.append(p_val)
+    return pVals
+
+
 def QaD_SVD(d, colorLabels=None, labels=None):
     "d is data matrix and colors is used for color coding the dots."
     u,s,vt = svd(d,0)
@@ -183,32 +218,41 @@ def QaD_SVD(d, colorLabels=None, labels=None):
 
     pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
 
+    #Plot Standard PCA plot
+    pylab.figure(figsize=(9,9))
+    for i in range(4):
+        pylab.subplot(2,2,i+1)
+        __pcPlot(vt, fracs, colorLabels, i, i+1)
+
+    return u, s, vt
+    
+     
+def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
+    """Plots a PC plot base on mos enriched colorLabels
+    
+    Arguments:
+    - `vt`:
+    - `fracs`:
+    - `colorLabels`:
+    """
     #Determine the colors of spots
     if  colorLabels is None:
         colors = 'b'
-    else: #It is a list 
-        'They are strings'
+    else: #It is a list or list of lists
+        if np.asarray(colorLabels, np.object).ndim == 2: #It contains multiple classifications
+            pvals = QaD_correlation(vt[ax1,:], colorLabels)
+            i = argmin(pvals)
+            #Pick the correct one:
+            colorLabels = colorLabels[i]
+        #colorLabels is now a list 
         colorTextLabels = sorted(list(set(colorLabels)))
-        colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
-
-    #Plot Standard PCA plot
-    pylab.figure(figsize=(10,10))
-    pylab.subplot(2,2,1)
-    ax = pylab.scatter(vt[0,:], vt[1,:], c=colors, linewidth=0, s=50, alpha=.7)
-    pylab.xlabel('PC1 (%2.1f%%)' %(fracs[0]*100))
-    pylab.ylabel('PC2 (%2.1f%%)' %(fracs[1]*100))
-    pylab.subplot(2,2,2)
-    pylab.scatter(vt[1,:], vt[2,:], c=colors, linewidth=0, s=50, alpha=.7)
-    pylab.xlabel('PC2 (%2.1f%%)' %(fracs[1]*100))
-    pylab.ylabel('PC3 (%2.1f%%)' %(fracs[2]*100))
-    pylab.subplot(2,2,3)
-    pylab.scatter(vt[2,:], vt[3,:], c=colors, linewidth=0, s=50, alpha=.7)
-    pylab.xlabel('PC3 (%2.1f%%)' %(fracs[2]*100))
-    pylab.ylabel('PC4 (%2.1f%%)' %(fracs[3]*100))
-    pylab.subplot(2,2,4)
-    pylab.scatter(vt[3,:], vt[4,:], c=colors, linewidth=0, s=50, alpha=.7)
-    pylab.xlabel('PC4 (%2.1f%%)' %(fracs[3]*100))
-    pylab.ylabel('PC5 (%2.1f%%)' %(fracs[4]*100))
+        if len(colorTextLabels)<10:
+            colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
+        else:
+            colors = colorTextLabels
+    ax = pylab.scatter(vt[ax1,:], vt[ax2,:], c=colors, linewidth=0, s=50, alpha=.7)
+    pylab.xlabel('PC%i (%2.1f%%)' %(ax1+1, fracs[ax1]*100))
+    pylab.ylabel('PC%i (%2.1f%%)' %(ax2+1, fracs[ax2]*100))
     if colorLabels is not None:
         lines=[]
         for c, label in enumerate(colorTextLabels):
@@ -218,9 +262,6 @@ def QaD_SVD(d, colorLabels=None, labels=None):
         else:
             pylab.colorbar()
 
-    return u, s, vt
-    
-     
 
 
 
