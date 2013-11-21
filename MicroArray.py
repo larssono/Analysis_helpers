@@ -119,7 +119,7 @@ def replaceNaNSVD(data, L):
 #  Normalization methods         
 #--------------------------------------------------------------
 def scale(data, center=True, scale=True):
-    """Normalizes each array so that the average expression is 0.
+    """Normalizes columns of data so that the average is 0 and std is 1 
     That is T_{:j} = T_{:j} - mean(T_{:,j}) and possibly  standard deviation=1:
     That is T_{:j} = T_{:j}/sqrt(T_{:,j} \cdot T_{:,j}).
  
@@ -127,12 +127,10 @@ def scale(data, center=True, scale=True):
     center: logical value indicating weather to mean center the rows of x
     scale: logical value indicating weather to scale the standard deviation of the rows
     """
-    nGenes, nExps=data.shape
     if center:
-        data=data-np.tile(np.mean(data, 1), (nExps, 1)).T
+        data = data - data.mean(0)
     if scale:
-        scaleFactor = np.sqrt([np.dot(d, d.T) for d in data])
-        data=data/np.tile(scaleFactor, (nExps, 1)).T
+        data = data/data.std(axis=0, ddof=1)
     return data
     
 
@@ -219,7 +217,7 @@ def QaD_SVD(d, colorLabels=None, labels=None):
     pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
 
     #Plot Standard PCA plot
-    pylab.figure(figsize=(9,9))
+    pylab.figure(figsize=(12,12))
     for i in range(4):
         pylab.subplot(2,2,i+1)
         __pcPlot(vt, fracs, colorLabels, i, i+1)
@@ -246,10 +244,7 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
             colorLabels = colorLabels[i]
         #colorLabels is now a list 
         colorTextLabels = sorted(list(set(colorLabels)))
-        if len(colorTextLabels)<10:
-            colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
-        else:
-            colors = colorTextLabels
+        colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
     ax = pylab.scatter(vt[ax1,:], vt[ax2,:], c=colors, linewidth=0, s=50, alpha=.7)
     pylab.xlabel('PC%i (%2.1f%%)' %(ax1+1, fracs[ax1]*100))
     pylab.ylabel('PC%i (%2.1f%%)' %(ax2+1, fracs[ax2]*100))
@@ -257,10 +252,10 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
         lines=[]
         for c, label in enumerate(colorTextLabels):
              lines.append(pylab.Rectangle((0, 0), 1, 1, fc=ax.get_cmap()(ax.norm(c))))
-        if len(colorTextLabels)<10:
-            pylab.legend(lines, colorTextLabels, loc=0)
-        else:
-            pylab.colorbar()
+        #if len(colorTextLabels)<10:
+        pylab.legend(lines, colorTextLabels, loc=0)
+        #else:
+        #    pylab.colorbar()
 
 
 
