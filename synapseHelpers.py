@@ -16,7 +16,7 @@ def thisCodeInSynapse(parentId, file=None, description=''):
     #print os.path.abspath(inspect.getfile(inspect.currentframe()))
     file = inspect.getfile(sys._getframe(1)) if file==None else file
     #Make sure unallowed characters are striped out for the name
-    code= synapseclient.File(name=file, parentId=parentId, description=description)
+    code= synapseclient.File(file, name=file, parent=parentId, description=description)
     codeEntity = syn.store(code)
     return codeEntity
 
