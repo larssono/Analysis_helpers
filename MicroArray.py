@@ -170,6 +170,7 @@ def QaD_correlation(values, classes, isFactor=None):
             groups = [values[classification==l] for l in list(set(classification))]
             f_val, p_val = stats.f_oneway(*groups) 
             pVals.append(p_val)
+            #print list(set(classification)), p_val
         #If it is not a factor perform correlation analysis
         else:
             m, b, r_val, p_val, slope_std_error = stats.linregress(values, classification)
@@ -217,7 +218,7 @@ def QaD_SVD(d, colorLabels=None, labels=None):
     pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
 
     #Plot Standard PCA plot
-    pylab.figure(figsize=(12,12))
+    pylab.figure(figsize=(14,14))
     for i in range(4):
         pylab.subplot(2,2,i+1)
         __pcPlot(vt, fracs, colorLabels, i, i+1)
@@ -226,7 +227,7 @@ def QaD_SVD(d, colorLabels=None, labels=None):
     
      
 def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
-    """Plots a PC plot base on mos enriched colorLabels
+    """Plots a PC plot base on most enriched colorLabels
     
     Arguments:
     - `vt`:
@@ -236,10 +237,10 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
     #Determine the colors of spots
     if  colorLabels is None:
         colors = 'b'
-    else: #It is a list or list of lists
+    else: #It is a list or list of lists  #Make sure it works for dataFrames
         if np.asarray(colorLabels, np.object).ndim == 2: #It contains multiple classifications
             pvals = QaD_correlation(vt[ax1,:], colorLabels)
-            i = argmin(pvals)
+            i = np.nanargmin(pvals)
             #Pick the correct one:
             colorLabels = colorLabels[i]
         #colorLabels is now a list 
@@ -253,7 +254,7 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
         for c, label in enumerate(colorTextLabels):
              lines.append(pylab.Rectangle((0, 0), 1, 1, fc=ax.get_cmap()(ax.norm(c))))
         #if len(colorTextLabels)<10:
-        pylab.legend(lines, colorTextLabels, loc=0)
+        pylab.legend(lines, colorTextLabels, loc=4, fontsize=7)
         #else:
         #    pylab.colorbar()
 
