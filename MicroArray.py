@@ -5,6 +5,7 @@ import scipy.stats as stats
 import numpy as np
 import pylab
 import numbers
+import pandas as pd
 
 import tensor
 import dataPlot
@@ -152,7 +153,7 @@ def QaD_correlation(values, classes, isFactor=None):
     
     Arguments:
     - `values`:  Vector of values (either numeric or factors)
-    - `classes`: list of lists of classifications (either numeric or factors)
+    - `classes`:  a two dimensional array or pandas DataFrame of (either numeric or factors)
     - `isFactor`: list of same length as classes of T/F indicating weather each 
                   class is a factor or continuous variable (defaults to None) meaning
                   strings are used factors and numbers as continuous
@@ -162,18 +163,24 @@ def QaD_correlation(values, classes, isFactor=None):
 
     isFactor = [None]*len(classes) if isFactor==None else isFactor
     pVals = []
-    for classification, factor in zip(classes, isFactor):
-        classification = np.asarray(classification)
+    classes = pd.DataFrame(classes)
+    for i, key in enumerate(classes):
+        classification = classes[key]
         #If it is a factor perform ANOVA across groups
-        if ((classification.dtype.type in [np.string_,  np.object_, np.bool_, np.unicode_]) or 
-            factor):
-            groups = [values[classification==l] for l in list(set(classification))]
+        if ((classification.dtype in [np.string_,  np.object_, np.bool_, np.unicode_]) or 
+            isFactor[i]):
+            groupLabels = list(set(classification.dropna()))
+            groups = [values[classification==l] for l in groupLabels]
             f_val, p_val = stats.f_oneway(*groups) 
+            #if np.isnan(p_val):
+            #    print groupLabels
             pVals.append(p_val)
         #If it is not a factor perform correlation analysis
         else:
             m, b, r_val, p_val, slope_std_error = stats.linregress(values, classification)
             pVals.append(p_val)
+    pVals = np.asarray(pVals)
+    pVals[np.isnan(pVals)] = np.inf
     return pVals
 
 
@@ -229,33 +236,47 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
     """Plots a PC plot base on mos enriched colorLabels
     
     Arguments:
-    - `vt`:
+    - `vt`: 
     - `fracs`:
-    - `colorLabels`:
+    - `colorLabels`: one of None, one dimensional list or two dimensional object such as 
+                     pandas.dataframe, numpy.array or list of lists
     """
+    textTitle = 'covariate'
+    pVal=np.nan
+
     #Determine the colors of spots
     if  colorLabels is None:
         colors = 'b'
-    else: #It is a list or list of lists
-        if np.asarray(colorLabels, np.object).ndim == 2: #It contains multiple classifications
-            pvals = QaD_correlation(vt[ax1,:], colorLabels)
-            i = argmin(pvals)
-            #Pick the correct one:
-            colorLabels = colorLabels[i]
-        #colorLabels is now a list 
-        colorTextLabels = sorted(list(set(colorLabels)))
-        colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
+    elif np.ndim(colorLabels)==2: #There are multiple annotations
+        pvals = QaD_correlation(vt[ax1,:], colorLabels)
+        i = np.argmin(pvals)
+        try: #If it is a pandas object extract the title(s) of each covariate
+            textTitle = colorLabels.columns[i]
+        except AttributeError:
+            pass
+        colorLabels = np.asarray(colorLabels)[:,i]
+        pVal = pvals[i]
+    else: #It is a one dimensional 
+        pVal = QaD_correlation(vt[ax1,:], [colorLabels])[0]
+    #Create labels and plt
+    colorTextLabels = sorted(list(set(colorLabels)))
+    colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
     ax = pylab.scatter(vt[ax1,:], vt[ax2,:], c=colors, linewidth=0, s=50, alpha=.7)
     pylab.xlabel('PC%i (%2.1f%%)' %(ax1+1, fracs[ax1]*100))
     pylab.ylabel('PC%i (%2.1f%%)' %(ax2+1, fracs[ax2]*100))
+    
+    pylab.title('PC%i vs %s p<%0.2g' %(ax1+1, textTitle, pVal))
     if colorLabels is not None:
         lines=[]
         for c, label in enumerate(colorTextLabels):
-             lines.append(pylab.Rectangle((0, 0), 1, 1, fc=ax.get_cmap()(ax.norm(c))))
-        #if len(colorTextLabels)<10:
-        pylab.legend(lines, colorTextLabels, loc=0)
-        #else:
-        #    pylab.colorbar()
+            lines.append(pylab.Rectangle((0, 0), 1, 1, fc=ax.get_cmap()(ax.norm(c))))
+        if len(colorTextLabels)<12:
+            pylab.legend(lines, colorTextLabels, loc=0, fontsize=8)
+        else:
+            #TODO fix this to be labeled with text and make it colorbar for continuous variables
+            cbar = pylab.colorbar()
+            #cbar.ax.set_yticks(np.arange(len(colorTextLabels)), colorTextLabels)
+
 
 
 
@@ -334,6 +355,35 @@ def QaD_HOSVD(t, colors=None):
     pylab.subplots_adjust(left=0.05, right=0.97)
  
     return (Z, Un, Sn, Vn, indexes)
+
+
+def test_QaD_SVD():
+    data = np.arange(100).reshape(20,5)
+    colorLabels = [['foo', 'foo', 'bar', 'foo', 'foo' , 'bar', 'bar', 'bar', 'bar', 'bar'],
+                   np.arange(10)]
+    #colorlabels==None
+
+    #colorLabels is list
+
+    #colorLabels is list of list
+
+    #colorLabels is np array
+
+    #colorLabels is pandas object
+
+    pass
+
+def test_QaD_correlation():
+    """
+    """
+    #Test list of lists
+    #test 2 d array
+    #test pandas object
+    #MicroArray.QaD_correlation(np.arange(metadata.shape[0]), np.random.randn(*metadata.shape))
+    pass
+    
+
+
 
 
 if __name__ == '__main__':
