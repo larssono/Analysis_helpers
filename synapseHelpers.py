@@ -16,9 +16,28 @@ def thisCodeInSynapse(parentId, file=None, description=''):
     #print os.path.abspath(inspect.getfile(inspect.currentframe()))
     file = inspect.getfile(sys._getframe(1)) if file==None else file
     #Make sure unallowed characters are striped out for the name
-    code= synapseclient.File(file, name=file, parent=parentId, description=description)
+    code= synapseclient.File(file, name=os.path.split(file)[-1], parent=parentId, description=description)
     codeEntity = syn.store(code)
     return codeEntity
+
+def query2df(queryContent, filterSynapseFields=True):
+    """Converts the returned query object from Synapse into a Pandas DataFrame
+    
+    Arguments:
+    - `queryContent`: content returned from query
+    - `filterSynapseFields`: Removes Synapse properties of the entity returned with "select * ..."
+    """
+    import pandas as pd
+    queryContent = pd.DataFrame(queryContent['results'])
+    #Remove the unecessary lists and 'entity' in names  (this should be fixed on Synapse!)
+    for key in queryContent.keys():
+        if filterSynapseFields and key in ['entity.benefactorId', 'entity.nodeType', 'entity.concreteType', 'entity.createdByPrincipalId', 'entity.createdOn', 'entity.createdByPrincipalId', 'entity.eTag', 'entity.id', 'entity.modifiedOn', 'entity.modifiedByPrincipalId', 'entity.noteType', 'entity.versionLabel', 'entity.versionComment', 'entity.versionNumber', 'entity.parentId', 'entity.description']:
+            del queryContent[key]
+            continue
+        newkey=key.replace('entity.', '')
+        queryContent[newkey] = pd.Series([item[0] for item in queryContent[key] if type(item) is list])
+        del queryContent[key]
+    return queryContent
 
 
 
