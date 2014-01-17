@@ -175,6 +175,7 @@ def QaD_correlation(values, classes, isFactor=None):
             #if np.isnan(p_val):
             #    print groupLabels
             pVals.append(p_val)
+            #print list(set(classification)), p_val
         #If it is not a factor perform correlation analysis
         else:
             m, b, r_val, p_val, slope_std_error = stats.linregress(values, classification)
@@ -224,7 +225,7 @@ def QaD_SVD(d, colorLabels=None, labels=None):
     pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
 
     #Plot Standard PCA plot
-    pylab.figure(figsize=(12,12))
+    pylab.figure(figsize=(14,14))
     for i in range(4):
         pylab.subplot(2,2,i+1)
         __pcPlot(vt, fracs, colorLabels, i, i+1)
@@ -233,7 +234,7 @@ def QaD_SVD(d, colorLabels=None, labels=None):
     
      
 def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
-    """Plots a PC plot base on mos enriched colorLabels
+    """Plots a PC plot base on most enriched colorLabels
     
     Arguments:
     - `vt`: 
@@ -276,7 +277,6 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
             #TODO fix this to be labeled with text and make it colorbar for continuous variables
             cbar = pylab.colorbar()
             #cbar.ax.set_yticks(np.arange(len(colorTextLabels)), colorTextLabels)
-
 
 
 
