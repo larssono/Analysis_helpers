@@ -120,9 +120,6 @@ import matplotlib.font_manager as fm
 # We need a special font for the code below.  It can be downloaded this way:
 import os
 import urllib2
-if not os.path.exists('Humor-Sans.ttf'):
-    fhandle = urllib2.urlopen('http://antiyawn.com/uploads/Humor-Sans.ttf')
-    open('Humor-Sans.ttf', 'w').write(fhandle.read())
 
     
 def xkcd_line(x, y, xlim=None, ylim=None,
@@ -148,6 +145,9 @@ def xkcd_line(x, y, xlim=None, ylim=None,
     x, y : ndarrays
         The modified lines
     """
+    if not os.path.exists('Humor-Sans.ttf'):
+        fhandle = urllib2.urlopen('http://antiyawn.com/uploads/Humor-Sans.ttf')
+        open('Humor-Sans.ttf', 'w').write(fhandle.read())
     x = np.asarray(x)
     y = np.asarray(y)
     
