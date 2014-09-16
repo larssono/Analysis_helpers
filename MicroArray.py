@@ -170,7 +170,7 @@ def QaD_correlation(values, classes, isFactor=None):
         if ((classification.dtype in [np.string_,  np.object_, np.bool_, np.unicode_]) or 
             isFactor[i]):
             groupLabels = list(set(classification.dropna()))
-            groups = [values[classification==l] for l in groupLabels]
+            groups = [values[np.where(classification==l)] for l in groupLabels]
             f_val, p_val = stats.f_oneway(*groups) 
             #if np.isnan(p_val):
             #    print groupLabels
@@ -248,20 +248,22 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
     #Determine the colors of spots
     if  colorLabels is None:
         colors = 'b'
-    elif np.ndim(colorLabels)==2: #There are multiple annotations
-        pvals = QaD_correlation(vt[ax1,:], colorLabels)
-        i = np.argmin(pvals)
-        try: #If it is a pandas object extract the title(s) of each covariate
-            textTitle = colorLabels.columns[i]
-        except AttributeError:
-            pass
-        colorLabels = np.asarray(colorLabels)[:,i]
-        pVal = pvals[i]
-    else: #It is a one dimensional 
-        pVal = QaD_correlation(vt[ax1,:], [colorLabels])[0]
-    #Create labels and plt
-    colorTextLabels = sorted(list(set(colorLabels)))
-    colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
+    else:
+        if np.ndim(colorLabels)==2: #There are multiple annotations
+            pvals = QaD_correlation(vt[ax1,:], colorLabels)
+            #print '\n'.join([str(x) for x in zip(colorLabels.columns, pvals)])
+            i = np.argmin(pvals)
+            try: #If it is a pandas object extract the title(s) of each covariate
+                textTitle = colorLabels.columns[i]
+            except AttributeError:
+                pass
+            colorLabels = np.asarray(colorLabels)[:,i]
+            pVal = pvals[i]
+        else: #It is a one dimensional 
+            pVal = QaD_correlation(vt[ax1,:], [colorLabels])[0]
+        #Create labels and plt
+        colorTextLabels = sorted(list(set(colorLabels)))
+        colors = np.asarray([colorTextLabels.index(val) for val in colorLabels])
     ax = pylab.scatter(vt[ax1,:], vt[ax2,:], c=colors, linewidth=0, s=50, alpha=.7)
     pylab.xlabel('PC%i (%2.1f%%)' %(ax1+1, fracs[ax1]*100))
     pylab.ylabel('PC%i (%2.1f%%)' %(ax2+1, fracs[ax2]*100))
