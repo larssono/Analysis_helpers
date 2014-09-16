@@ -185,7 +185,7 @@ def QaD_correlation(values, classes, isFactor=None):
     return pVals
 
 
-def QaD_SVD(d, colorLabels=None, labels=None):
+def QaD_SVD(d, colorLabels=None, labels=None, plotEigengenes=True, plotPCA=True):
     "d is data matrix and colors is used for color coding the dots."
     u,s,vt = svd(d,0)
     fracs = s**2/np.sum(s**2)
@@ -193,42 +193,44 @@ def QaD_SVD(d, colorLabels=None, labels=None):
     if labels is None:
         labels=range(1, vt.shape[1]+1)
     nGenes, nExps= d.shape
-    #Plot Standard SVD plot
-    pylab.figure(figsize=(12,4))
 
-    pylab.subplot(1,3,1)
-    pylab.imshow(vt, cmap=dataPlot.blueyellow, interpolation='nearest')
-    pylab.ylabel('Eigengenes')
-    pylab.title('(a) Arrays')
-    pylab.xlabel('Arrays')
-    pylab.yticks(np.arange(vt.shape[0]), range(1, vt.shape[0]+1))
-    pylab.xticks(np.arange(vt.shape[1]), labels)
-    pylab.setp(pylab.gca().get_xticklabels(), rotation=45, fontsize=8)
+    if plotEigengenes:
+        #Plot Standard SVD plot
+        pylab.figure(figsize=(12,4))
 
-    pylab.subplot(1,3,2)
-    pylab.bar(range(1,min(10,nExps)+1), fracs[:min(10,nExps)], width=.8); 
-    pylab.ylabel('% Variance')
-    pylab.xlabel('Singular Value')
-    pylab.xticks(np.arange(1, 11)+.4, np.arange(1, 11))
-    pylab.title('(b) Eigenexpression Fraction d=%0.2g' % entropy)
+        pylab.subplot(1,3,1)
+        pylab.imshow(vt, cmap=dataPlot.blueyellow, interpolation='nearest')
+        pylab.ylabel('Eigengenes')
+        pylab.title('(a) Arrays')
+        pylab.xlabel('Arrays')
+        pylab.yticks(np.arange(vt.shape[0]), range(1, vt.shape[0]+1))
+        pylab.xticks(np.arange(vt.shape[1]), labels)
+        pylab.setp(pylab.gca().get_xticklabels(), rotation=45, fontsize=8)
 
-    pylab.subplot(1,3,3)
-    pylab.plot(vt[:min(4,vt.shape[0]),:].T, '-o');
-    pylab.title('(c) EigenGenes')
-    pylab.xlabel('Arrays')
-    pylab.ylabel('Expression Level')
-    pylab.grid('on')
-    pylab.legend(range(1, min(4, vt.shape[0])+1))
-    pylab.xticks(np.arange(vt.shape[1]), labels)
-    pylab.setp(pylab.gca().get_xticklabels(), rotation=45, fontsize=8)
+        pylab.subplot(1,3,2)
+        pylab.bar(range(1,min(10,nExps)+1), fracs[:min(10,nExps)], width=.8); 
+        pylab.ylabel('% Variance')
+        pylab.xlabel('Singular Value')
+        pylab.xticks(np.arange(1, 11)+.4, np.arange(1, 11))
+        pylab.title('(b) Eigenexpression Fraction d=%0.2g' % entropy)
 
-    pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
+        pylab.subplot(1,3,3)
+        pylab.plot(vt[:min(4,vt.shape[0]),:].T, '-o');
+        pylab.title('(c) EigenGenes')
+        pylab.xlabel('Arrays')
+        pylab.ylabel('Expression Level')
+        pylab.grid('on')
+        pylab.legend(range(1, min(4, vt.shape[0])+1))
+        pylab.xticks(np.arange(vt.shape[1]), labels)
+        pylab.setp(pylab.gca().get_xticklabels(), rotation=45, fontsize=8)
 
-    #Plot Standard PCA plot
-    pylab.figure(figsize=(14,14))
-    for i in range(4):
-        pylab.subplot(2,2,i+1)
-        __pcPlot(vt, fracs, colorLabels, i, i+1)
+        pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
+    if plotPCA:
+        #Plot Standard PCA plot
+        pylab.figure(figsize=(14,14))
+        for i in range(4):
+            pylab.subplot(2,2,i+1)
+            __pcPlot(vt, fracs, colorLabels, i, i+1)
 
     return u, s, vt
     
