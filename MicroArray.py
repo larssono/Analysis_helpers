@@ -275,7 +275,7 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
         lines=[]
         for c, label in enumerate(colorTextLabels):
             lines.append(pylab.Rectangle((0, 0), 1, 1, fc=ax.get_cmap()(ax.norm(c))))
-        if len(colorTextLabels)<12:
+        if len(colorTextLabels)<15:
             pylab.legend(lines, colorTextLabels, loc=0, fontsize=8)
         else:
             #TODO fix this to be labeled with text and make it colorbar for continuous variables

@@ -5,6 +5,11 @@ import sys
 import fileReader
 import numpy as np
 
+SYNAPSE_PROPERTIES  = ['benefactorId', 'nodeType', 'concreteType', 'createdByPrincipalId', 
+                       'createdOn', 'createdByPrincipalId', 'eTag', 'id', 'modifiedOn', 
+                       'modifiedByPrincipalId', 'noteType', 'versionLabel', 'versionComment', 
+                       'versionNumber', 'parentId', 'description', 's3Token']
+
 syn=synapseclient.Synapse()
 syn.login()
 
@@ -24,68 +29,55 @@ def query2df(queryContent, filterSynapseFields=True):
     """Converts the returned query object from Synapse into a Pandas DataFrame
     
     Arguments:
-    - `queryContent`: content returned from query
+    - `queryContent`: content returned from query or chunkedQuery
     - `filterSynapseFields`: Removes Synapse properties of the entity returned with "select * ..."
+                             defaults to True
     """
     import pandas as pd
-    queryContent = pd.DataFrame(queryContent['results'])
-    #Remove the unecessary lists and 'entity' in names  (this should be fixed on Synapse!)
-    for key in queryContent.keys():
-        if filterSynapseFields and key in ['entity.benefactorId', 'entity.nodeType', 'entity.concreteType', 'entity.createdByPrincipalId', 'entity.createdOn', 'entity.createdByPrincipalId', 'entity.eTag', 'entity.id', 'entity.modifiedOn', 'entity.modifiedByPrincipalId', 'entity.noteType', 'entity.versionLabel', 'entity.versionComment', 'entity.versionNumber', 'entity.parentId', 'entity.description']:
-            del queryContent[key]
-            continue
-        newkey=key.replace('entity.', '')
-        queryContent[newkey] = pd.Series([item[0] for item in queryContent[key] if type(item) is list])
-        del queryContent[key]
-    return queryContent
+    try:
+        queryContent = queryContent['results']
+    except TypeError: #If 'results' not present it is a geneartor
+        queryContent = list(queryContent)
+    for row in queryContent:
+        for key in row.keys():
+            new_key = '.'.join(key.split('.')[1:])
+            item = row.pop(key)
+            row[new_key] = item[0] if type(item) is list else item
+            if filterSynapseFields and new_key in SYNAPSE_PROPERTIES:
+                del row[new_key]
+    return pd.DataFrame(queryContent)
 
 
 
-def createEvaluationBoard(name, parentId, markdown='',status='OPEN', contentSource=''):
-        """Creates an evaluation where users can submit entities for evaluation by a monitoring process.
-        Currently also creates a folder where the results are displayed in a leaderboard.
-        
-        Arguments:
-        - `name`: Name of the Evaluation
-        - `parentId` : Location of leaderboard folder
-        - `description`: A string describing the evaluation in detail
-        - `status`: A string describing the status: one of { PLANNED, OPEN, CLOSED, COMPLETED}
+def df2markdown(df, wikiEntity=None, subPageId=None, syn=None, prefixText=None, suffixText=None):
+    """Todo add documentation"""
 
-        Returns:
-        - `evaluation`: information about the evaluation 
-        - `leaderboard`: folder that contains the output leaderboard
-        """
-        # # Create an evaluation
-        evaluation=syn.store(Evaluation(name=name, status=status, contentSource=contentSource))
-        
-        # # create a wiki to describe the Challenge
-        homeWikiPage = Wiki(title=name, markdown=md, owner=Evaluation)
-        homeWikiPage = syn.store(homeWikiPage)
+    df = df.reset_index()
+    if prefixText:
+        wikiText = "%s\n\n" % prefixText
+    else:
+        wikiText = ''
+    ncols = df.shape[1]
+    nrows = df.shape[0]
+    mod_colnames = map(lambda x: x.replace('_', '-'), df.columns.values)
+    wikiText += "|%s|\n" %  ('|'.join(mod_colnames))
+    wikiText += "|%s|\n" %  ( '|'.join(['--'] * ncols))
 
-        return evaluation, homeWikiPage
-        
+    for row in df.iterrows():
+        values = row[1].values
+        wikiText += "|%s|\n" % ('|'.join(map(str,values)))
+    if suffixText:
+        wikiText += "%s\n" % suffixText
 
-def updateLeaderboard(leaderboard, evaluation):
-    """Goes through all submissions in an evalution and updates the description markdown in entity.
-    
-    Arguments:
-    - `entity`: A folder/project entity that contains the leaderboard
-    - `evaluation`: an evaluation object where submissions are made
-    """
-    leaderboard.markdown = 'Submission Name|Submitter|Submission|Score|Status|Report|\n'
-    userNames={}
-    for submission in  syn.getSubmissions(evaluation):
-        status =  syn.getSubmissionStatus(submission)
-        #Extract the username
-        userName = userNames.get(submission['userId'], None)
-        if userName==None:
-            userName = syn.getUserProfile(submission['userId'])['displayName']
-            userNames[submission['userId']] = userName
-        print submission.get('name', ''), userName, submission.entityId, status.score, status.status, status.report
-        leaderboard.markdown+='%s|%s|%s|%f|%s|%s|\n' %(submission.get('name', ''), 
-                                                 userName, submission.entityId, status.score,
-                                                 status.status, status.report)
-    syn.store(leaderboard)
+    #just return the text
+    if wikiEntity is None and syn is None:
+        return wikiText
+    else:
+        wiki = syn.getWiki(wikiEntity, subpageId=subPageId)
+        wiki['markdown'] = wikiText
+        syn.store(wiki)
+        return wikiText
+
 
 
 
@@ -96,8 +88,17 @@ def readEntityFile(entity):
 def match(seq1, seq2):
     """Finds the index locations of seq1 in seq2"""
     return [ np.nonzero(seq2==x)[0][0] for x in seq1  if x in seq2 ]
-        
+
+
+def cleanUpUUIDprojects():
+    """
+    """
+    uuidPattern = re.compile('/[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/')
+    #for each project see if the name matches the 
+    myProjects = syn.chunkedQuery('select name from project where createdByPrincipalId=="%s" %syn. )
 
 if __name__ == '__main__':
     thisCodeInSynapse('syn537704')
     print 'done'
+
+

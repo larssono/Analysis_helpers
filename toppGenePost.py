@@ -21,7 +21,7 @@ class ToppGeneEnrichement(object):
         #if self.correction==None:
         #    response =  requests.post(self.URL, {'type': type, 'training_set': training_set})
         #return response.text
-        return """<form action="http://toppgene.cchmc.org/CheckInput.action" method="post" target="_blank">
+        return """<form action="https://toppgene.cchmc.org/CheckInput.action" method="post" target="_blank">
         <input type="hidden" name="query" value="TOPPFUN">
         <input type="hidden" id="type" name="type" value="%s">
         <input type="hidden" name="training_set" id="training_set" value="%s">
