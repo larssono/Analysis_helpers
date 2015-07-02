@@ -1,4 +1,4 @@
-from numpy.oldnumeric import *
+#from numpy.oldnumeric import *
 from scipy.linalg import svd, pinv
 import scipy.stats as stats
 
@@ -185,11 +185,15 @@ def QaD_correlation(values, classes, isFactor=None):
     return pVals
 
 
-def QaD_SVD(d, colorLabels=None, labels=None, plotEigengenes=True, plotPCA=True):
-    "d is data matrix and colors is used for color coding the dots."
+def QaD_SVD(d, colorLabels=None, labels=None, plotEigengenes=True, plotPCA=True, noColorBar=False):
+    """d is data matrix and colors is used for color coding the dots.
+    
+    - `noColorBar`: if set to true overides the default behaviour of showing a colorabar 
+                    when there are more than 15 different labels.
+    """
     u,s,vt = svd(d,0)
     fracs = s**2/np.sum(s**2)
-    entropy = -sum(fracs*log(fracs))/np.log(np.min(vt.shape));
+    entropy = -sum(fracs*np.log(fracs))/np.log(np.min(vt.shape));
     if labels is None:
         labels=range(1, vt.shape[1]+1)
     nGenes, nExps= d.shape
@@ -230,12 +234,12 @@ def QaD_SVD(d, colorLabels=None, labels=None, plotEigengenes=True, plotPCA=True)
         pylab.figure(figsize=(14,14))
         for i in range(4):
             pylab.subplot(2,2,i+1)
-            __pcPlot(vt, fracs, colorLabels, i, i+1)
+            __pcPlot(vt, fracs, colorLabels, i, i+1, noColorBar)
 
     return u, s, vt
     
      
-def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
+def __pcPlot(vt, fracs, colorLabels, ax1, ax2, noColorBar=False):
     """Plots a PC plot base on most enriched colorLabels
     
     Arguments:
@@ -243,6 +247,8 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
     - `fracs`:
     - `colorLabels`: one of None, one dimensional list or two dimensional object such as 
                      pandas.dataframe, numpy.array or list of lists
+    - `noColorBar`: forces the colorlabels to always use a key instead turn into a colorbar
+                    with more than 15 labels
     """
     textTitle = 'covariate'
     pVal=np.nan
@@ -275,7 +281,7 @@ def __pcPlot(vt, fracs, colorLabels, ax1, ax2):
         lines=[]
         for c, label in enumerate(colorTextLabels):
             lines.append(pylab.Rectangle((0, 0), 1, 1, fc=ax.get_cmap()(ax.norm(c))))
-        if len(colorTextLabels)<15:
+        if len(colorTextLabels)<15 or noColorBar:
             pylab.legend(lines, colorTextLabels, loc=0, fontsize=8)
         else:
             #TODO fix this to be labeled with text and make it colorbar for continuous variables
