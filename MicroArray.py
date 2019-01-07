@@ -1,7 +1,7 @@
 #from numpy.oldnumeric import *
 from scipy.linalg import svd, pinv
 import scipy.stats as stats
-
+import sys 
 import numpy as np
 import pylab
 import numbers
@@ -9,6 +9,51 @@ import pandas as pd
 
 import tensor
 import dataPlot
+
+
+#--------------------------------------------------------------            
+# Helper Function for diffing 
+#--------------------------------------------------------------
+def dataframe_diff(df1, df2, html=True, head=-1):
+    """Either returns a data frame or an html representation of the
+    difference between two dataframes.  If it is a data frame the
+    contents of the cells with different values will be the combined
+    values separated by a |
+    
+    For html=True the differences are highlighted and are displayed in
+    a ipython notebook with: IPython.display.HTML(dataframe_diff(df,
+    orig, html=True))
+
+    html - [True|False] specifies output type
+    head - Determines how many rows to return, defaults to all but can
+           be overriden with an integer
+
+    """
+    my_panel = pd.Panel(dict(df1=df1,df2=df2))
+    my_panel = my_panel.iloc[:, :head, :]
+    print my_panel.shape
+    def string_diff(x):
+        if pd.isnull(x[0]) and pd.isnull(x[1]):
+            return unicode(x[0].__str__().decode('utf8'))
+        else:
+            return x[0].__str__().decode('utf8') if x[0] == x[1] else '{} | {}'.format(*x)
+
+    def html_diff(x):
+        if x[0]==x[1]:
+            return unicode(x[0].__str__())
+        elif pd.isnull(x[0]) and pd.isnull(x[1]):
+            return unicode(x[0].__str__()) #u'<div style="background:#33ff33">%s|%s</div>' % (x[0], x[1])
+        elif pd.isnull(x[0]) and ~pd.isnull(x[1]):
+            return u'<div style="background:#ffff00">%s|%s</div>' % (x[0], x[1])
+        elif ~pd.isnull(x[0]) and pd.isnull(x[1]):
+            return u'<div style="background:#4444ff">%s|%s</div>' % (x[0], x[1])
+        else:
+            return u'<div style="background:#ff3333">%s|%s</div>' % (x[0], x[1])
+
+    if html:  
+        return my_panel.apply(html_diff, axis=0).to_html(escape=False)
+    else:
+        return my_panel.apply(string_diff, axis=0)
 
 #--------------------------------------------------------------            
 # Methods for Filtering out missing values
@@ -204,6 +249,7 @@ def QaD_SVD(d, colorLabels=None, labels=None, plotEigengenes=True, plotPCA=True,
 
         pylab.subplot(1,3,1)
         pylab.imshow(vt, cmap=dataPlot.blueyellow, interpolation='nearest')
+        pylab.grid(False)
         pylab.ylabel('Eigengenes')
         pylab.title('(a) Arrays')
         pylab.xlabel('Arrays')
@@ -223,7 +269,7 @@ def QaD_SVD(d, colorLabels=None, labels=None, plotEigengenes=True, plotPCA=True,
         pylab.title('(c) EigenGenes')
         pylab.xlabel('Arrays')
         pylab.ylabel('Expression Level')
-        pylab.grid('on')
+        pylab.grid(True)
         pylab.legend(range(1, min(4, vt.shape[0])+1))
         pylab.xticks(np.arange(vt.shape[1]), labels)
         pylab.setp(pylab.gca().get_xticklabels(), rotation=45, fontsize=8)
@@ -231,15 +277,15 @@ def QaD_SVD(d, colorLabels=None, labels=None, plotEigengenes=True, plotPCA=True,
         pylab.subplots_adjust(left=.07, bottom=None, right=.95, top=None, wspace=.22, hspace=None)
     if plotPCA:
         #Plot Standard PCA plot
-        pylab.figure(figsize=(14,14))
+        fig = pylab.figure(figsize=(14,14))
         for i in range(4):
             pylab.subplot(2,2,i+1)
-            __pcPlot(vt, fracs, colorLabels, i, i+1, noColorBar)
+            __pcPlot(vt, fracs, colorLabels, i, i+1, noColorBar, fig)
 
     return u, s, vt
     
      
-def __pcPlot(vt, fracs, colorLabels, ax1, ax2, noColorBar=False):
+def __pcPlot(vt, fracs, colorLabels, ax1, ax2, noColorBar=False, fig=None):
     """Plots a PC plot base on most enriched colorLabels
     
     Arguments:
@@ -304,7 +350,7 @@ def QaD_HOSVD(t, colors=None):
     entropyn=[]
     for i in range(t.ndim):
         fractionsn.append(Sn[i]**2/np.sum(Sn[i]**2))
-        entropyn.append(-np.sum(fractionsn[i]*np.log(fractionsn[i]))/np.log(np.min(size(Vn[i]))))
+        entropyn.append(-np.sum(fractionsn[i]*np.log(fractionsn[i]))/np.log(np.min(np.size(Vn[i]))))
     
     #Determine ordering
     idx = np.argsort(-np.abs(Z), axis=None)
@@ -326,6 +372,7 @@ def QaD_HOSVD(t, colors=None):
         pylab.figure(figsize=(12,8))
         pylab.subplot(2,3,1)
         pylab.imshow(Un[i].T, cmap=dataPlot.blueyellow, interpolation='nearest')
+        pylab.grid(False)
         pylab.axis('tight')
         pylab.ylabel('Eigengenes'); pylab.xticks([]); pylab.yticks([])
         pylab.title('Arrays U_%i' % (i+1))
@@ -340,6 +387,7 @@ def QaD_HOSVD(t, colors=None):
 
         pylab.subplot(2,3,3)
         pylab.imshow(Vn[i], cmap=dataPlot.blueyellow, interpolation='nearest')
+        pylab.grid(False)
         pylab.axis('tight'); pylab.xticks([])
         pylab.title('V_%i' %(i+1))
         pylab.subplot(2,3,6); 
@@ -355,7 +403,7 @@ def QaD_HOSVD(t, colors=None):
     pylab.barh(range(1,N+1), fractions[:N], height=.8)
     pylab.yticks(np.arange(1, N+1)+.4, labels[:N])
     pylab.gca().set_ylim(pylab.gca().get_ylim()[::-1])
-    pylab.grid('on')
+    pylab.grid(True)
     pylab.xlabel('% Variance')
 
     for i in range(t.ndim):

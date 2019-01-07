@@ -146,7 +146,7 @@ if __name__ == '__main__':
     f=concurrentFileReader('/home/lom/current_projects/human_genome_data/HumanPhasedData/hgdp/hgdp.chr22.bgl.phased.gz',
                            '/home/lom/current_projects/human_genome_data/HumanPhasedData/qatar/qatarFlt.chr22.bgl.phased.gz',
                            '/home/lom/current_projects/human_genome_data/HumanPhasedData/hapmap3/ceu/hapmap3_r2_b36_fwd.consensus.qc.poly.chr22_ceu.phased.gz')
-    print f.next()
+    print(f.next())
     for s, d in f:
         print (s[0], s[1], d)
 

@@ -2,13 +2,13 @@ import synapseclient
 import os
 import inspect
 import sys
-import fileReader
 import numpy as np
 
 SYNAPSE_PROPERTIES  = ['benefactorId', 'nodeType', 'concreteType', 'createdByPrincipalId', 
                        'createdOn', 'createdByPrincipalId', 'eTag', 'id', 'modifiedOn', 
                        'modifiedByPrincipalId', 'noteType', 'versionLabel', 'versionComment', 
-                       'versionNumber', 'parentId', 'description', 's3Token', 'name']
+                       'versionNumber', 'parentId', 'description', 's3Token', 'name', 
+                       'alias', 'projectId', 'fileNameOverride']
 
 syn=synapseclient.Synapse(skip_checks=True)
 syn.login(silent=True)
@@ -115,17 +115,15 @@ def tableUpdateWhere(tableSchema, whereClause, setDict):
     from synapseclient.utils import id_of
     import tempfile
     id = id_of(tableSchema)
-    query = 'select %s from %s where %s' %(','.join(setDict.keys()), id, whereClause)
-    df =  syn.tableQuery(query).asDataFrame()
+    query = 'select %s from %s where %s' % (','.join(setDict.keys()), id, whereClause)
+    df = syn.tableQuery(query).asDataFrame()
     for key, value in setDict.items():
-        df[key]= value
-    print df
-    #df.to_csv('skit.csv')
+        df[key] = value
+    print(df)
+    # df.to_csv('skit.csv')
     return syn.store(Table(id_of(tableSchema), 'skit.csv'))
-    
+
 
 if __name__ == '__main__':
     thisCodeInSynapse('syn537704')
-    print 'done'
-
-
+    print('done')
